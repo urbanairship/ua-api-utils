@@ -1,0 +1,14 @@
+.noseids
+*.egg
+*.egg-info
+*.orig
+*.pyc
+*.so
+bin
+build
+dist
+docs/_build
+include
+lib
+man
+share
