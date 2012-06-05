@@ -1,6 +1,8 @@
 Urban Airship API Utilities
 ===========================
 
+https://github.com/urbanairship/ua-api-utils#readme
+
 Currently just provides a simple ``ua`` command line tool with a single sub-command:
 
 ::
