@@ -30,6 +30,7 @@ def get_tokens(options):
     """Get all tokens for an app"""
     logger.info('Retrieving tokens and saving to %s' % options.outfile)
     resp = requests.get('https://go.urbanairship.com/api/device_tokens/',
+                        params={'limit': 5},
                         auth=(options.app_key, options.secret))
     tokens = {
         'device_tokens_count': resp.json['device_tokens_count'],

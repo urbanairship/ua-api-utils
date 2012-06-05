@@ -45,3 +45,9 @@ And of course, there's always sudo to install it globally:
 
         sudo pip install ua-api-utils
 
+No pip?
+
+::
+
+        sudo easy_install ua-api-utils
+
