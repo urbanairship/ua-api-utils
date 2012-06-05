@@ -15,6 +15,7 @@ setup(
     author='Michael Schurter',
     author_email='schmichael@urbanairship.com',
     description="Utilities for working with Urban Airship's APIs",
+    long_description=open('README.rst').read(),
     packages=['ua_utils'],
     entry_points={
         'console_scripts': [
