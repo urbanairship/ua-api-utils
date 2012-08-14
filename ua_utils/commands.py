@@ -1,9 +1,11 @@
 import logging
 import sys
+from multiprocessing import Queue, Process
 
 import simplejson as json
 import requests
 
+MULTIPROC = True
 
 logger = logging.getLogger('ua_utils.cli')
 _commands = {}
@@ -27,8 +29,8 @@ def get_command(name):
 
 @cmd('get-tokens')
 def get_tokens(options):
-    """Get all tokens for an app"""
-    logger.info('Retrieving tokens and saving to %s' % options.outfile)
+    """Get all device tokens for an app"""
+    logger.info('Retrieving device tokens and saving to %s' % options.outfile)
     resp = requests.get('https://go.urbanairship.com/api/device_tokens/',
                         params={'limit': 5},
                         auth=(options.app_key, options.secret))
@@ -55,3 +57,63 @@ def get_tokens(options):
     else:
         f = open(options.outfile, 'w')
     json.dump(tokens, f, indent='    ')
+
+
+def tally_active_apids(apid_json, queue=None):
+    """Get tally for active apids"""
+    active = 0
+    for apid_data in apid_json:
+        if apid_data['active'] is True:
+            active += 1
+    if queue:
+        queue.put(active)
+        queue.close()
+        return
+    else:
+        return active
+
+
+@cmd('get-apids')
+def get_apids(options):
+    """Get all apids for an app"""
+    logger.info('Retrieving apids and saving to %s' % options.outfile)
+    resp = requests.get('https://go.urbanairship.com/api/apids/',
+                       params={'limit': 5},
+                       auth=(options.app_key, options.secret))
+    apids = {'apids': resp.json['apids'], 'active_apids': 0}
+    if MULTIPROC:
+        q = Queue()
+        tallier = Process(target=tally_active_apids,
+                          args=(resp.json['apids'], q))
+        tallier.start()
+    else:
+        apids['active_apids'] = tally_active_apids(resp.json['apids'])
+
+    count = len(apids['apids'])
+    logger.info('Retrieved %d apids' % count)
+
+    while resp.json.get('next_page'):
+        resp = requests.get(resp.json['next_page'],
+                            auth=(options.app_key, options.secret))
+        apids['apids'].extend(resp.json['apids'])
+        count = len(apids['apids'])
+        # With logging line here the count is printed correctly
+        logger.info('Retrieved %d apids' % count)
+        if MULTIPROC:
+            apids['active_apids'] += q.get()
+            tallier.join()
+            q = Queue()
+            tallier = Process(target=tally_active_apids,
+                              args=(resp.json['apids'], q))
+            tallier.start()
+        else:
+            apids['active_apids'] += tally_active_apids(resp.json['apids'])
+    if MULTIPROC:
+        apids['active_apids'] += q.get()
+        tallier.join()
+    logger.info('Done, saving to %s' % (options.outfile or '-'))
+    if not options.outfile or options.outfile == '-':
+        f = sys.stdout
+    else:
+        f = open(options.outfile, 'w')
+    json.dump(apids, f, indent='    ')
