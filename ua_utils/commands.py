@@ -5,7 +5,7 @@ from multiprocessing import Queue, Process
 import simplejson as json
 import requests
 
-MULTIPROC = True
+MULTIPROC = False
 
 logger = logging.getLogger('ua_utils.cli')
 _commands = {}
