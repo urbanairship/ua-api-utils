@@ -1,11 +1,8 @@
 import logging
 import sys
-from multiprocessing import Queue, Process
 
 import simplejson as json
 import requests
-
-MULTIPROC = False
 
 logger = logging.getLogger('ua_utils.cli')
 _commands = {}
@@ -81,13 +78,7 @@ def get_apids(options):
                        params={'limit': 5},
                        auth=(options.app_key, options.secret))
     apids = {'apids': resp.json['apids'], 'active_apids': 0}
-    if MULTIPROC:
-        q = Queue()
-        tallier = Process(target=tally_active_apids,
-                          args=(resp.json['apids'], q))
-        tallier.start()
-    else:
-        apids['active_apids'] = tally_active_apids(resp.json['apids'])
+    apids['active_apids'] = tally_active_apids(resp.json['apids'])
 
     count = len(apids['apids'])
     logger.info('Retrieved %d apids' % count)
@@ -99,18 +90,7 @@ def get_apids(options):
         count = len(apids['apids'])
         # With logging line here the count is printed correctly
         logger.info('Retrieved %d apids' % count)
-        if MULTIPROC:
-            apids['active_apids'] += q.get()
-            tallier.join()
-            q = Queue()
-            tallier = Process(target=tally_active_apids,
-                              args=(resp.json['apids'], q))
-            tallier.start()
-        else:
-            apids['active_apids'] += tally_active_apids(resp.json['apids'])
-    if MULTIPROC:
-        apids['active_apids'] += q.get()
-        tallier.join()
+        apids['active_apids'] += tally_active_apids(resp.json['apids'])
     logger.info('Done, saving to %s' % (options.outfile or '-'))
     if not options.outfile or options.outfile == '-':
         f = sys.stdout
