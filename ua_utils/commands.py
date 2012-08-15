@@ -56,18 +56,13 @@ def get_tokens(options):
     json.dump(tokens, f, indent='    ')
 
 
-def tally_active_apids(apid_json, queue=None):
+def tally_active_apids(apid_json):
     """Get tally for active apids"""
     active = 0
     for apid_data in apid_json:
         if apid_data['active'] is True:
             active += 1
-    if queue:
-        queue.put(active)
-        queue.close()
-        return
-    else:
-        return active
+    return active
 
 
 @cmd('get-apids')
@@ -88,7 +83,6 @@ def get_apids(options):
                             auth=(options.app_key, options.secret))
         apids['apids'].extend(resp.json['apids'])
         count = len(apids['apids'])
-        # With logging line here the count is printed correctly
         logger.info('Retrieved %d apids' % count)
         apids['active_apids'] += tally_active_apids(resp.json['apids'])
     logger.info('Done, saving to %s' % (options.outfile or '-'))
