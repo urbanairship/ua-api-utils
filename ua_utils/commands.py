@@ -58,10 +58,7 @@ def get_tokens(options):
 
 def tally_active_apids(apid_json):
     """Get tally for active apids"""
-    active = 0
-    for apid_data in apid_json:
-        if apid_data['active'] is True:
-            active += 1
+    active = len([apid for apid in apid_json if apid['active']])
     return active
 
 
@@ -72,22 +69,22 @@ def get_apids(options):
     resp = requests.get('https://go.urbanairship.com/api/apids/',
                        params={'limit': 5},
                        auth=(options.app_key, options.secret))
-    apids = {'apids': resp.json['apids'], 'active_apids': 0}
-    apids['active_apids'] = tally_active_apids(resp.json['apids'])
-
-    count = len(apids['apids'])
+    apids = resp.json['apids']
+    active_apids = tally_active_apids(resp.json['apids'])
+    count = len(apids)
     logger.info('Retrieved %d apids' % count)
 
     while resp.json.get('next_page'):
         resp = requests.get(resp.json['next_page'],
                             auth=(options.app_key, options.secret))
-        apids['apids'].extend(resp.json['apids'])
-        count = len(apids['apids'])
+        apids.extend(resp.json['apids'])
+        count = len(apids)
         logger.info('Retrieved %d apids' % count)
-        apids['active_apids'] += tally_active_apids(resp.json['apids'])
+        active_apids += tally_active_apids(resp.json['apids'])
+    apid_data = {'apids': apids, 'active_apids': active_apids}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
     if not options.outfile or options.outfile == '-':
         f = sys.stdout
     else:
         f = open(options.outfile, 'w')
-    json.dump(apids, f, indent='    ')
+    json.dump(apid_data, f, indent='    ')
