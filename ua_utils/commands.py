@@ -100,13 +100,23 @@ def get_unique_users():
 @cmd('get-user_ids')
 def get_users(options):
     """Get all user_ids for an app"""
-    pass
     logger.info('Retrieving user_ids and saving to %s' % options.outfile)
     # Check to see if users acccepts limit params
-    resp = requests.get('https://go.urbanairship.com/api/users/',
-                       params={'limit': 5},
-                       auth=(options.app_key, options.secret))
+    # Format of request url
+    #   'https://go.urbanairship.com/api/users/<start>/<count>'
+    #       Seems to chunk in 10s no matter what
+    #       Also appears to not be ordered in response depending on
+    #       how many are requested at once
+    index = 0
+    increment = 10
+    url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
+    resp = requests.get(url, auth=(options.app_key, options.secret))
+    user_ids = resp.json['users']
+    while [user_id in 
     # Work around for user endpoint doing wonky things
+    #   - Endpoint can return some dupes before end of list.
+    #       - Check for entire list being a dupe?
+    #           - Run some further testing on this
     # Check for dupes
     # If the payload is full of dupes end requests
     # If the payload has uniques add to user_ids and continue
@@ -124,11 +134,11 @@ def get_users(options):
     #   - Get unique user_ids
     #   - Get unqiue users
     #   - Repeat
-    unique_users, unique_user_ids = get_unique_users(resp.json['users'])
-    user_ids = {'user_ids': unique_users}
-    count = len(user_ids['user_ids'])
-    logger.info('Retrieved %d apids' % count)
+    #unique_users, unique_user_ids = get_unique_users(resp.json['users'])
+    #user_ids = {'user_ids': unique_users}
+    #count = len(user_ids['user_ids'])
 
+    logger.info('Retrieved %d apids' % count)
     while resp.json.get('next_page'):
         resp = requests.get(resp.json['next_page'],
                             auth=(options.app_key, options.secret))
