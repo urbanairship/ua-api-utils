@@ -91,3 +91,54 @@ def get_apids(options):
     else:
         f = open(options.outfile, 'w')
     json.dump(apids, f, indent='    ')
+
+
+def get_unique_users():
+    pass
+
+
+@cmd('get-user_ids')
+def get_users(options):
+    """Get all user_ids for an app"""
+    pass
+    logger.info('Retrieving user_ids and saving to %s' % options.outfile)
+    # Check to see if users acccepts limit params
+    resp = requests.get('https://go.urbanairship.com/api/users/',
+                       params={'limit': 5},
+                       auth=(options.app_key, options.secret))
+    # Work around for user endpoint doing wonky things
+    # Check for dupes
+    # If the payload is full of dupes end requests
+    # If the payload has uniques add to user_ids and continue
+    # Where to store/track the list of user_ids?
+    # Can this be popped out for multiproc?
+        # Pass the tuple return through the queue, unpack from get?
+    # After work this weekend the API will return the ending user_ids
+    #   repeatedly after the end of users is reached.
+    #   - Need to find out if it only returns last 10 over and over?
+    #   - Is this the behavior while the index is out of range?
+    # Need to set a flag for a dupe user seen
+    # Flow: (Each a separate call)
+    #   - Get user ids
+    #   - Check for dupes
+    #   - Get unique user_ids
+    #   - Get unqiue users
+    #   - Repeat
+    unique_users, unique_user_ids = get_unique_users(resp.json['users'])
+    user_ids = {'user_ids': unique_users}
+    count = len(user_ids['user_ids'])
+    logger.info('Retrieved %d apids' % count)
+
+    while resp.json.get('next_page'):
+        resp = requests.get(resp.json['next_page'],
+                            auth=(options.app_key, options.secret))
+        apids['apids'].extend(resp.json['apids'])
+        count = len(apids['apids'])
+        logger.info('Retrieved %d apids' % count)
+        apids['active_apids'] += tally_active_apids(resp.json['apids'])
+    logger.info('Done, saving to %s' % (options.outfile or '-'))
+    if not options.outfile or options.outfile == '-':
+        f = sys.stdout
+    else:
+        f = open(options.outfile, 'w')
+    json.dump(apids, f, indent='    ')
