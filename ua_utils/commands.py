@@ -111,8 +111,11 @@ def get_users(options):
     increment = 10
     url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
     resp = requests.get(url, auth=(options.app_key, options.secret))
-    user_ids = resp.json['users']
-    while [user_id in 
+    user_ids = []
+    # Check to see if users from request are all dupes
+    #   This should be separate as we can use this for the unique users count pulled down
+    while [u_id for u_id in resp.json['users'] if u_id not in user_ids]:
+        
     # Work around for user endpoint doing wonky things
     #   - Endpoint can return some dupes before end of list.
     #       - Check for entire list being a dupe?
