@@ -91,7 +91,7 @@ def get_apids(options):
 
 
 def get_unique_users(user_json, user_ids):
-    """Get unique user_ids"""
+    """Get unique users"""
     ids = [u_id for u_id in user_json if u_id['user_id'] not in
            user_ids]
     return ids
