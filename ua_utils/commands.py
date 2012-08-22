@@ -93,66 +93,47 @@ def get_apids(options):
     json.dump(apids, f, indent='    ')
 
 
-def get_unique_user_ids(user_id_json):
-    
+def get_unique_users(user_json, user_ids):
+    """Get unique user_ids"""
+    ids = [u_id for u_id in user_json if u_id['user_id'] not in
+           user_ids]
+    return ids
 
 
-@cmd('get-user_ids')
+@cmd('get-users')
 def get_users(options):
-    """Get all user_ids for an app"""
+    """Get all users for an app"""
     logger.info('Retrieving user_ids and saving to %s' % options.outfile)
-    # Check to see if users acccepts limit params
-    # Format of request url
-    #   'https://go.urbanairship.com/api/users/<start>/<count>'
-    #       Seems to chunk in 10s no matter what
-    #       Also appears to not be ordered in response depending on
-    #       how many are requested at once
     index = 0
     increment = 10
     url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
     resp = requests.get(url, auth=(options.app_key, options.secret))
-    user_ids = []
-    # Check to see if users from request are all dupes
-    #   This should be separate as we can use this for the unique users count pulled down
-    unique_ids = [u_id for u_id in resp.json['users'] if u_id not in user_ids]
-    while unique_ids:
+    unique_users = resp.json['users']
+    users = unique_users
+    user_ids = [u_id['user_id'] for u_id in users]
 
-    # Work around for user endpoint doing wonky things
-    #   - Endpoint can return some dupes before end of list.
-    #       - Check for entire list being a dupe?
-    #           - Run some further testing on this
-    # Check for dupes
-    # If the payload is full of dupes end requests
-    # If the payload has uniques add to user_ids and continue
-    # Where to store/track the list of user_ids?
-    # Can this be popped out for multiproc?
-        # Pass the tuple return through the queue, unpack from get?
-    # After work this weekend the API will return the ending user_ids
-    #   repeatedly after the end of users is reached.
-    #   - Need to find out if it only returns last 10 over and over?
-    #   - Is this the behavior while the index is out of range?
-    # Need to set a flag for a dupe user seen
-    # Flow: (Each a separate call)
-    #   - Get user ids
-    #   - Check for dupes
-    #   - Get unique user_ids
-    #   - Get unqiue users
-    #   - Repeat
-    #unique_users, unique_user_ids = get_unique_users(resp.json['users'])
-    #user_ids = {'user_ids': unique_users}
-    #count = len(user_ids['user_ids'])
+    unique_count = len(user_ids)
+    logger.info('Retrieved %d unique users' % unique_count)
 
-    logger.info('Retrieved %d apids' % count)
-    while resp.json.get('next_page'):
-        resp = requests.get(resp.json['next_page'],
-                            auth=(options.app_key, options.secret))
-        apids['apids'].extend(resp.json['apids'])
-        count = len(apids['apids'])
-        logger.info('Retrieved %d apids' % count)
-        apids['active_apids'] += tally_active_apids(resp.json['apids'])
+    while unique_users:
+        index += increment
+        url = ('https://go.urbanairship.com/api/users/%d/%d' %
+               (index, increment))
+        resp = requests.get(url, auth=(options.app_key, options.secret))
+        # So unfortunately this endpoint doesn't act consistently upon
+        # reaching the "end" of the user_ids associated with the app.
+        # This means we have to check against the full list of user_ids
+        unique_users = get_unique_users(resp.json['users'], user_ids)
+        users.extend(unique_users)
+        user_ids.extend([u_id['user_id'] for u_id in unique_users])
+        user_ids_count = len(user_ids)
+        unique_count = len(unique_users)
+        logger.info('Retrieved %d unique users for a total of %d users' %
+                    (unique_count, user_ids_count))
+    users_data = {'users': users}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
     if not options.outfile or options.outfile == '-':
         f = sys.stdout
     else:
         f = open(options.outfile, 'w')
-    json.dump(apids, f, indent='    ')
+    json.dump(users_data, f, indent='    ')
