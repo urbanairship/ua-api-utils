@@ -88,3 +88,48 @@ def get_apids(options):
     else:
         f = open(options.outfile, 'w')
     json.dump(apid_data, f, indent='    ')
+
+
+def get_unique_users(user_json, user_ids):
+    """Get unique users"""
+    ids = [u for u in user_json if u['user_id'] not in user_ids]
+    return ids
+
+
+@cmd('get-users')
+def get_users(options):
+    """Get all users for an app"""
+    logger.info('Retrieving user_ids and saving to %s' % options.outfile)
+    index = 0
+    increment = 10
+    url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
+    resp = requests.get(url, auth=(options.app_key, options.secret))
+    new_users = resp.json['users']
+    users = new_users
+    user_ids = [u['user_id'] for u in users]
+
+    new_count = len(user_ids)
+    logger.info('Retrieved %d new users' % new_count)
+
+    while new_users:
+        index += increment
+        url = ('https://go.urbanairship.com/api/users/%d/%d' %
+               (index, increment))
+        resp = requests.get(url, auth=(options.app_key, options.secret))
+        # So unfortunately this endpoint doesn't act consistently upon
+        # reaching the "end" of the user_ids associated with the app.
+        # This means we have to check against the full list of user_ids
+        new_users = get_unique_users(resp.json['users'], user_ids)
+        users.extend(new_users)
+        user_ids.extend([u['user_id'] for u in new_users])
+        user_ids_count = len(user_ids)
+        new_count = len(new_users)
+        logger.info('Retrieved %d new users for a total of %d users' %
+                    (new_count, user_ids_count))
+    users_data = {'users': users}
+    logger.info('Done, saving to %s' % (options.outfile or '-'))
+    if not options.outfile or options.outfile == '-':
+        f = sys.stdout
+    else:
+        f = open(options.outfile, 'w')
+    json.dump(users_data, f, indent='    ')
