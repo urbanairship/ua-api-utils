@@ -92,8 +92,7 @@ def get_apids(options):
 
 def get_unique_users(user_json, user_ids):
     """Get unique users"""
-    ids = [u_id for u_id in user_json if u_id['user_id'] not in
-           user_ids]
+    ids = [u for u in user_json if u['user_id'] not in user_ids]
     return ids
 
 
@@ -105,14 +104,14 @@ def get_users(options):
     increment = 10
     url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
     resp = requests.get(url, auth=(options.app_key, options.secret))
-    unique_users = resp.json['users']
-    users = unique_users
-    user_ids = [u_id['user_id'] for u_id in users]
+    new_users = resp.json['users']
+    users = new_users
+    user_ids = [u['user_id'] for u in users]
 
-    unique_count = len(user_ids)
-    logger.info('Retrieved %d unique users' % unique_count)
+    new_count = len(user_ids)
+    logger.info('Retrieved %d new users' % new_count)
 
-    while unique_users:
+    while new_users:
         index += increment
         url = ('https://go.urbanairship.com/api/users/%d/%d' %
                (index, increment))
@@ -120,13 +119,13 @@ def get_users(options):
         # So unfortunately this endpoint doesn't act consistently upon
         # reaching the "end" of the user_ids associated with the app.
         # This means we have to check against the full list of user_ids
-        unique_users = get_unique_users(resp.json['users'], user_ids)
-        users.extend(unique_users)
-        user_ids.extend([u_id['user_id'] for u_id in unique_users])
+        new_users = get_unique_users(resp.json['users'], user_ids)
+        users.extend(new_users)
+        user_ids.extend([u['user_id'] for u in new_users])
         user_ids_count = len(user_ids)
-        unique_count = len(unique_users)
-        logger.info('Retrieved %d unique users for a total of %d users' %
-                    (unique_count, user_ids_count))
+        new_count = len(new_users)
+        logger.info('Retrieved %d new users for a total of %d users' %
+                    (new_count, user_ids_count))
     users_data = {'users': users}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
     if not options.outfile or options.outfile == '-':
