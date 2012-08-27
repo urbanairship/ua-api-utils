@@ -24,6 +24,15 @@ def get_command(name):
     return _commands.get(name)
 
 
+def write_results(options, json_data):
+    """Write json results to a file or stdout"""
+    if not options.outfile or options.outfile == '-':
+        f = sys.stdout
+    else:
+        f = open(options.outfile, 'w')
+    json.dump(json_data, f, indent='    ')
+
+
 @cmd('get-tokens')
 def get_tokens(options):
     """Get all device tokens for an app"""
@@ -49,11 +58,7 @@ def get_tokens(options):
         tokens['device_tokens'].extend(resp.json['device_tokens'])
 
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    if not options.outfile or options.outfile == '-':
-        f = sys.stdout
-    else:
-        f = open(options.outfile, 'w')
-    json.dump(tokens, f, indent='    ')
+    write_results(options, tokens)
 
 
 def tally_active_apids(apid_json):
@@ -83,11 +88,7 @@ def get_apids(options):
         active_apids += tally_active_apids(resp.json['apids'])
     apid_data = {'apids': apids, 'active_apids': active_apids}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    if not options.outfile or options.outfile == '-':
-        f = sys.stdout
-    else:
-        f = open(options.outfile, 'w')
-    json.dump(apid_data, f, indent='    ')
+    write_results(options, apid_data)
 
 
 def get_unique_users(user_json, user_ids):
@@ -128,8 +129,4 @@ def get_users(options):
                     (new_count, user_ids_count))
     users_data = {'users': users}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    if not options.outfile or options.outfile == '-':
-        f = sys.stdout
-    else:
-        f = open(options.outfile, 'w')
-    json.dump(users_data, f, indent='    ')
+    write_results(options, users_data)
