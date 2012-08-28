@@ -19,21 +19,23 @@ def cmd(name=None):
     return wrap
 
 
+def jsoncmd(fn):
+    def wrap(*args, **kwargs):
+        if not args[0].outfile or args[0].outfile == '-':
+            f = sys.stdout
+        else:
+            f = open(args[0].outfile, 'w')
+        json.dump(fn(*args, **kwargs), f, indent='    ')
+    return wrap
+
+
 def get_command(name):
     """Returns a command handler function or None if command isn't found"""
     return _commands.get(name)
 
 
-def write_results(options, json_data):
-    """Write json results to a file or stdout"""
-    if not options.outfile or options.outfile == '-':
-        f = sys.stdout
-    else:
-        f = open(options.outfile, 'w')
-    json.dump(json_data, f, indent='    ')
-
-
 @cmd('get-tokens')
+@jsoncmd
 def get_tokens(options):
     """Get all device tokens for an app"""
     logger.info('Retrieving device tokens and saving to %s' % options.outfile)
@@ -58,7 +60,7 @@ def get_tokens(options):
         tokens['device_tokens'].extend(resp.json['device_tokens'])
 
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    write_results(options, tokens)
+    return tokens
 
 
 def tally_active_apids(apid_json):
@@ -68,6 +70,7 @@ def tally_active_apids(apid_json):
 
 
 @cmd('get-apids')
+@jsoncmd
 def get_apids(options):
     """Get all apids for an app"""
     logger.info('Retrieving apids and saving to %s' % options.outfile)
@@ -88,7 +91,7 @@ def get_apids(options):
         active_apids += tally_active_apids(resp.json['apids'])
     apid_data = {'apids': apids, 'active_apids': active_apids}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    write_results(options, apid_data)
+    return apid_data
 
 
 def get_unique_users(user_json, user_ids):
@@ -98,6 +101,7 @@ def get_unique_users(user_json, user_ids):
 
 
 @cmd('get-users')
+@jsoncmd
 def get_users(options):
     """Get all users for an app"""
     logger.info('Retrieving user_ids and saving to %s' % options.outfile)
@@ -129,4 +133,4 @@ def get_users(options):
                     (new_count, user_ids_count))
     users_data = {'users': users}
     logger.info('Done, saving to %s' % (options.outfile or '-'))
-    write_results(options, users_data)
+    return users_data
