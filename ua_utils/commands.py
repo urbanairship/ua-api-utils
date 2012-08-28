@@ -21,12 +21,13 @@ def cmd(name=None):
 
 def jsoncmd(fn):
     def wrap(*args, **kwargs):
-        if not args[0].outfile or args[0].outfile == '-':
+        opt = args[0]
+        if not opt.outfile or opt.outfile == '-':
             f = sys.stdout
         else:
-            f = open(args[0].outfile, 'w')
+            f = open(opt.outfile, 'w')
         json.dump(fn(*args, **kwargs), f, indent='    ')
-        logger.info('Done, saving to %s' % (args[0].outfile or '-'))
+        logger.info('Done, saving to %s' % (opt.outfile or '-'))
     return wrap
 
 
@@ -35,14 +36,26 @@ def get_command(name):
     return _commands.get(name)
 
 
+def api_req(endpoint, auth, params=None):
+    """Make API request to UA API"""
+    url = 'https://go.urbanairship.com/api/' + endpoint
+    if params:
+        r = requests.get(url, params=params, auth=auth)
+    else:
+        r = requests.get(url, auth=auth)
+    return r
+
+
 @cmd('get-tokens')
 @jsoncmd
 def get_tokens(options):
     """Get all device tokens for an app"""
     logger.info('Retrieving device tokens and saving to %s' % options.outfile)
-    resp = requests.get('https://go.urbanairship.com/api/device_tokens/',
-                        params={'limit': 5},
-                        auth=(options.app_key, options.secret))
+    auth = (options.app_key, options.secret)
+    resp = api_req('device_tokens/', auth, params={'limit': 5})
+    #resp = requests.get('https://go.urbanairship.com/api/device_tokens/',
+    #                    params={'limit': 5},
+    #                    auth=auth)
     tokens = {
         'device_tokens_count': resp.json['device_tokens_count'],
         'active_device_tokens_count':
@@ -56,7 +69,7 @@ def get_tokens(options):
     while resp.json.get('next_page'):
         logger.info('Retrieved %d of %d' % (count, total))
         resp = requests.get(resp.json['next_page'],
-                            auth=(options.app_key, options.secret))
+                            auth=auth)
         count = len(tokens['device_tokens'])
         tokens['device_tokens'].extend(resp.json['device_tokens'])
 
@@ -74,9 +87,11 @@ def tally_active_apids(apid_json):
 def get_apids(options):
     """Get all apids for an app"""
     logger.info('Retrieving apids and saving to %s' % options.outfile)
-    resp = requests.get('https://go.urbanairship.com/api/apids/',
-                       params={'limit': 5},
-                       auth=(options.app_key, options.secret))
+    auth = (options.app_key, options.secret)
+    resp = api_req('apids/', auth, params={'limit': 5})
+    #resp = requests.get('https://go.urbanairship.com/api/apids/',
+    #                   params={'limit': 5},
+    #                   auth=(options.app_key, options.secret))
     apids = resp.json['apids']
     active_apids = tally_active_apids(resp.json['apids'])
     count = len(apids)
@@ -84,7 +99,7 @@ def get_apids(options):
 
     while resp.json.get('next_page'):
         resp = requests.get(resp.json['next_page'],
-                            auth=(options.app_key, options.secret))
+                            auth=auth)
         apids.extend(resp.json['apids'])
         count = len(apids)
         logger.info('Retrieved %d apids' % count)
@@ -104,10 +119,11 @@ def get_unique_users(user_json, user_ids):
 def get_users(options):
     """Get all users for an app"""
     logger.info('Retrieving user_ids and saving to %s' % options.outfile)
+    auth = (options.app_key, options.secret)
     index = 0
     increment = 10
     url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
-    resp = requests.get(url, auth=(options.app_key, options.secret))
+    resp = requests.get(url, auth=auth)
     new_users = resp.json['users']
     users = new_users
     user_ids = [u['user_id'] for u in users]
@@ -119,7 +135,7 @@ def get_users(options):
         index += increment
         url = ('https://go.urbanairship.com/api/users/%d/%d' %
                (index, increment))
-        resp = requests.get(url, auth=(options.app_key, options.secret))
+        resp = requests.get(url, auth=auth)
         # So unfortunately this endpoint doesn't act consistently upon
         # reaching the "end" of the user_ids associated with the app.
         # This means we have to check against the full list of user_ids
