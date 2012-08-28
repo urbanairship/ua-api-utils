@@ -26,6 +26,7 @@ def jsoncmd(fn):
         else:
             f = open(args[0].outfile, 'w')
         json.dump(fn(*args, **kwargs), f, indent='    ')
+        logger.info('Done, saving to %s' % (args[0].outfile or '-'))
     return wrap
 
 
@@ -59,7 +60,6 @@ def get_tokens(options):
         count = len(tokens['device_tokens'])
         tokens['device_tokens'].extend(resp.json['device_tokens'])
 
-    logger.info('Done, saving to %s' % (options.outfile or '-'))
     return tokens
 
 
@@ -90,7 +90,6 @@ def get_apids(options):
         logger.info('Retrieved %d apids' % count)
         active_apids += tally_active_apids(resp.json['apids'])
     apid_data = {'apids': apids, 'active_apids': active_apids}
-    logger.info('Done, saving to %s' % (options.outfile or '-'))
     return apid_data
 
 
@@ -132,5 +131,4 @@ def get_users(options):
         logger.info('Retrieved %d new users for a total of %d users' %
                     (new_count, user_ids_count))
     users_data = {'users': users}
-    logger.info('Done, saving to %s' % (options.outfile or '-'))
     return users_data
