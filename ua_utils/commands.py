@@ -38,7 +38,7 @@ def get_command(name):
 
 def api_req(endpoint, auth, params=None):
     """Make API request to UA API"""
-    url = 'https://go.urbanairship.com/api/' + endpoint
+    url = 'https://go.urbanairship.com/api/%s' % endpoint
     if params:
         r = requests.get(url, params=params, auth=auth)
     else:
@@ -140,3 +140,16 @@ def get_users(options):
                     (new_count, user_ids_count))
     users_data = {'users': users}
     return users_data
+
+
+@cmd('get-tags')
+@jsoncmd
+def get_tags(options):
+    """Get push tags for an app"""
+    logger.info('Retreiving tags and saving to %s' % options.outfile)
+    auth = (options.app_key, options.secret)
+    resp = api_req('tags/', auth)
+    tags = resp.json['tags']
+    count = len(tags)
+    logger.info('Retrieved %d tags' % count)
+    return tags
