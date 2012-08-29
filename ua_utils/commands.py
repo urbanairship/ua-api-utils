@@ -53,9 +53,6 @@ def get_tokens(options):
     logger.info('Retrieving device tokens and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
     resp = api_req('device_tokens/', auth, params={'limit': 5})
-    #resp = requests.get('https://go.urbanairship.com/api/device_tokens/',
-    #                    params={'limit': 5},
-    #                    auth=auth)
     tokens = {
         'device_tokens_count': resp.json['device_tokens_count'],
         'active_device_tokens_count':
@@ -89,9 +86,6 @@ def get_apids(options):
     logger.info('Retrieving apids and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
     resp = api_req('apids/', auth, params={'limit': 5})
-    #resp = requests.get('https://go.urbanairship.com/api/apids/',
-    #                   params={'limit': 5},
-    #                   auth=(options.app_key, options.secret))
     apids = resp.json['apids']
     active_apids = tally_active_apids(resp.json['apids'])
     count = len(apids)
@@ -122,8 +116,8 @@ def get_users(options):
     auth = (options.app_key, options.secret)
     index = 0
     increment = 10
-    url = 'https://go.urbanairship.com/api/users/%d/%d' % (index, increment)
-    resp = requests.get(url, auth=auth)
+    user_req = lambda ind, inc, auth: api_req('users/%d/%d' % (ind, inc), auth)
+    resp = user_req(index, increment, auth)
     new_users = resp.json['users']
     users = new_users
     user_ids = [u['user_id'] for u in users]
@@ -133,9 +127,7 @@ def get_users(options):
 
     while new_users:
         index += increment
-        url = ('https://go.urbanairship.com/api/users/%d/%d' %
-               (index, increment))
-        resp = requests.get(url, auth=auth)
+        resp = user_req(index, increment, auth)
         # So unfortunately this endpoint doesn't act consistently upon
         # reaching the "end" of the user_ids associated with the app.
         # This means we have to check against the full list of user_ids
