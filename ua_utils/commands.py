@@ -144,6 +144,12 @@ def get_users(options):
 
 @cmd('get-tags')
 @jsoncmd
-def get_tags(options)
-    """Get all push tags associated with an app"""
-    logger.info('Retrieving tags and saving to 
+def get_tags(options):
+    """Get push tags for an app"""
+    logger.info('Retreiving tags and saving to %s' % options.outfile)
+    auth = (options.app_key, options.secret)
+    resp = api_req('tags/', auth)
+    tags = resp.json['tags']
+    count = len(tags)
+    logger.info('Retrieved %d tags' % count)
+    return tags
