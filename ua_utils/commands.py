@@ -1,5 +1,6 @@
 import logging
 import sys
+from functools import wraps
 
 import simplejson as json
 import requests
@@ -20,13 +21,13 @@ def cmd(name=None):
 
 
 def jsoncmd(fn):
-    def wrap(*args, **kwargs):
-        opt = args[0]
+    @wraps(fn)
+    def wrap(opt, *args, **kwargs):
         if not opt.outfile or opt.outfile == '-':
             f = sys.stdout
         else:
             f = open(opt.outfile, 'w')
-        json.dump(fn(*args, **kwargs), f, indent='    ')
+        json.dump(fn(opt, *args, **kwargs), f, indent='    ')
         logger.info('Done, saving to %s' % (opt.outfile or '-'))
     return wrap
 
