@@ -51,6 +51,7 @@ def api_req(endpoint, auth, params=None):
 @jsoncmd
 def get_tokens(options):
     """Get all device tokens for an app"""
+    #TODO Fix logging count bug, intial request is displayed wrong?
     logger.info('Retrieving device tokens and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
     resp = api_req('device_tokens/', auth, params={'limit': 5})
@@ -68,8 +69,8 @@ def get_tokens(options):
         logger.info('Retrieved %d of %d' % (count, total))
         resp = requests.get(resp.json['next_page'],
                             auth=auth)
-        count = len(tokens['device_tokens'])
         tokens['device_tokens'].extend(resp.json['device_tokens'])
+        count = len(tokens['device_tokens'])
 
     return tokens
 
