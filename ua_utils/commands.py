@@ -75,9 +75,9 @@ def get_tokens(options):
     return tokens
 
 
-def tally_active_apids(apid_json):
-    """Get tally for active apids"""
-    active = len([apid for apid in apid_json if apid['active']])
+def tally_active_devices(device_json):
+    """Get tally for active apids or pins"""
+    active = len([device for device in device_json if device['active']])
     return active
 
 
@@ -89,7 +89,7 @@ def get_apids(options):
     auth = (options.app_key, options.secret)
     resp = api_req('apids/', auth, params={'limit': 5})
     apids = resp.json['apids']
-    active_apids = tally_active_apids(resp.json['apids'])
+    active_apids = tally_active_devices(resp.json['apids'])
     count = len(apids)
     logger.info('Retrieved %d apids' % count)
 
@@ -99,9 +99,32 @@ def get_apids(options):
         apids.extend(resp.json['apids'])
         count = len(apids)
         logger.info('Retrieved %d apids' % count)
-        active_apids += tally_active_apids(resp.json['apids'])
+        active_apids += tally_active_devices(resp.json['apids'])
     apid_data = {'apids': apids, 'active_apids': active_apids}
     return apid_data
+
+
+@cmd('get-pins')
+@jsoncmd
+def get_pins(options):
+    """Get all pins for an app"""
+    logger.info('Retrieving pins and saving to %s' % options.outfile)
+    auth = (options.app_key, options.secret)
+    resp = api_req('device_pins/', auth, params={'limit': 5})
+    pins = resp.json['device_pins']
+    active_pins = tally_active_devices(resp.json['device_pins'])
+    count = len(pins)
+    logger.info('Retrieved %d pins' % count)
+
+    while resp.json.get('next_page'):
+        resp = requests.get(resp.json['next_page'],
+                           auth=auth)
+        pins.extend(resp.json['device_pins'])
+        count = len(pins)
+        logger.info('Retrieved %d pins' % count)
+        active_pins += tally_active_devices(resp.json['device_pins'])
+    pin_data = {'device_pins': pins, 'active_pins': active_pins}
+    return pin_data
 
 
 def get_unique_users(user_json, user_ids):
