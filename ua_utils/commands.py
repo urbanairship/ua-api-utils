@@ -110,18 +110,16 @@ def get_pins(options):
     """Get all pins for an app"""
     logger.info('Retrieving pins and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
-    resp = api_req('device_pins/', auth, params={'limit': 5})
+    resp = api_req('device_pins/', auth, params={'limit': 500})
     pins = resp.json['device_pins']
     active_pins = tally_active_devices(resp.json['device_pins'])
-    count = len(pins)
-    logger.info('Retrieved %d pins' % count)
+    logger.info('Retrieved %d pins' % len(pins))
 
     while resp.json.get('next_page'):
         resp = requests.get(resp.json['next_page'],
                            auth=auth)
         pins.extend(resp.json['device_pins'])
-        count = len(pins)
-        logger.info('Retrieved %d pins' % count)
+        logger.info('Retrieved %d pins' % len(pins))
         active_pins += tally_active_devices(resp.json['device_pins'])
     pin_data = {'device_pins': pins, 'active_pins': active_pins}
     return pin_data
