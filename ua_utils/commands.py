@@ -5,6 +5,8 @@ from functools import wraps
 import simplejson as json
 import requests
 
+# CHUNK value determines how many device_tokens/apids/etc... that
+# are retrieved per request to the API
 CHUNK = 500
 REQ_ATTEMPTS = 10
 
