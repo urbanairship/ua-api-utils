@@ -63,21 +63,12 @@ def api_req(endpoint, auth, params=None):
             else:
                 r = requests.get(url, auth=auth)
 
-        except requests.exceptions.Timeout:
-            recurs += 1
-            make_req(endpoint, auth, params, recurs, 'Timeout')
+        except KeyboardInterrupt:
+            sys.exit()
 
-        except requests.exceptions.ConnectionError:
+        except Exception, e:
             recurs += 1
-            make_req(endpoint, auth, params, recurs, 'Connection Error')
-
-        except requests.exceptions.HTTPError:
-            recurs += 1
-            make_req(endpoint, auth, params, recurs, 'HTTP Error')
-
-        except requests.exceptions.TooManyRedirects:
-            recurs += 1
-            make_req(endpoint, auth, params, recurs, 'Too Many Redirects')
+            make_req(endpoint, auth, params, recurs, e)
 
         return r
 
