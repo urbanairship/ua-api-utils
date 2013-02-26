@@ -5,6 +5,9 @@ from functools import wraps
 import simplejson as json
 import requests
 
+CHUNK = 500
+REQ_ATTEMPTS = 10
+
 logger = logging.getLogger('ua_utils.cli')
 _commands = {}
 
@@ -39,12 +42,46 @@ def get_command(name):
 
 def api_req(endpoint, auth, params=None):
     """Make API request to UA API"""
-    url = 'https://go.urbanairship.com/api/%s' % endpoint
-    if params:
-        r = requests.get(url, params=params, auth=auth)
-    else:
-        r = requests.get(url, auth=auth)
-    return r
+    def make_req(endpoint, auth, params, recurs=0, excep=None):
+        # I considered doing this with a decorator but seemed felt
+        # that recursion + decorator + exception handling would have been
+        # a bit hard to read
+        url = 'https://go.urbanairship.com/api/%s' % endpoint
+
+        if recurs > REQ_ATTEMPTS:
+            sys.exit(('Request was attempted {0} time(s) but failed. Last '
+            'request was to {1} and failed due to {2}'.format(REQ_ATTEMPTS,
+                                                              url,
+                                                              excep
+                                                              )
+                     )
+            )
+
+        try:
+            if params:
+                r = requests.get(url, params=params, auth=auth)
+            else:
+                r = requests.get(url, auth=auth)
+
+        except requests.exceptions.Timeout:
+            recurs += 1
+            make_req(endpoint, auth, params, recurs, 'Timeout')
+
+        except requests.exceptions.ConnectionError:
+            recurs += 1
+            make_req(endpoint, auth, params, recurs, 'Connection Error')
+
+        except requests.exceptions.HTTPError:
+            recurs += 1
+            make_req(endpoint, auth, params, recurs, 'HTTP Error')
+
+        except requests.exceptions.TooManyRedirects:
+            recurs += 1
+            make_req(endpoint, auth, params, recurs, 'Too Many Redirects')
+
+        return r
+
+    return make_req(endpoint, auth, params)
 
 
 @cmd('get-tokens')
@@ -53,7 +90,7 @@ def get_tokens(options):
     """Get all device tokens for an app"""
     logger.info('Retrieving device tokens and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
-    resp = api_req('device_tokens/', auth, params={'limit': 5})
+    resp = api_req('device_tokens/', auth, params={'limit': CHUNK})
     tokens = {
         'device_tokens_count': resp.json['device_tokens_count'],
         'active_device_tokens_count':
@@ -87,7 +124,7 @@ def get_apids(options):
     """Get all apids for an app"""
     logger.info('Retrieving apids and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
-    resp = api_req('apids/', auth, params={'limit': 5})
+    resp = api_req('apids/', auth, params={'limit': CHUNK})
     apids = resp.json['apids']
     active_apids = tally_active_devices(resp.json['apids'])
     count = len(apids)
@@ -110,7 +147,7 @@ def get_pins(options):
     """Get all pins for an app"""
     logger.info('Retrieving pins and saving to %s' % options.outfile)
     auth = (options.app_key, options.secret)
-    resp = api_req('device_pins/', auth, params={'limit': 500})
+    resp = api_req('device_pins/', auth, params={'limit': CHUNK})
     pins = resp.json['device_pins']
     active_pins = tally_active_devices(resp.json['device_pins'])
     logger.info('Retrieved %d pins' % len(pins))
