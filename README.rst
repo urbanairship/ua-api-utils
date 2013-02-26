@@ -33,7 +33,7 @@ In a virtualenv in safest (if you have virtualenv installed):
         virtualenv ua-api-utils
         cd ua-api-utils
         . bin/activate
-        pip install ua-api-utils
+        python setup.py install 
 
 Or in your ``$HOME`` directory if you have your user-site in your ``$PATH``:
 
