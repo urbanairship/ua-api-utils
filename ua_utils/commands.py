@@ -44,37 +44,27 @@ def get_command(name):
 
 def api_req(endpoint, auth, params=None):
     """Make API request to UA API"""
-    def make_req(endpoint, auth, params, recurs=0, excep=None):
-        # I considered doing this with a decorator but seemed felt
-        # that recursion + decorator + exception handling would have been
-        # a bit hard to read
-        url = 'https://go.urbanairship.com/api/%s' % endpoint
+    url = 'https://go.urbanairship.com/api/%s' % endpoint
+    excep = None
 
-        if recurs > REQ_ATTEMPTS:
-            sys.exit(('Request was attempted {0} time(s) but failed. Last '
-            'request was to {1} and failed due to {2}'.format(REQ_ATTEMPTS,
-                                                              url,
-                                                              excep
-                                                              )
-                     )
-            )
-
+    for i in range(REQ_ATTEMPTS):
         try:
-            if params:
-                r = requests.get(url, params=params, auth=auth)
-            else:
-                r = requests.get(url, auth=auth)
+            r = requests.get(url, params=params, auth=auth)
 
-        except KeyboardInterrupt:
-            sys.exit()
-
-        except Exception, e:
-            recurs += 1
-            make_req(endpoint, auth, params, recurs, e)
-
-        return r
-
-    return make_req(endpoint, auth, params)
+        except Exception as excep:
+            sys.stderr.write(('Request attemp failed due to: {0}. '
+                              'Retrying.\n'.format(excep)))
+        else:
+            break
+    else:
+        sys.exit(('Request was attempted {0} time(s) but failed. Last '
+            'request was to: {1} and failed due to: {2}'.format(REQ_ATTEMPTS,
+                                                          url,
+                                                          excep
+                                                          )
+                 )
+        )
+    return r
 
 
 @cmd('get-tokens')
