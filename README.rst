@@ -26,6 +26,16 @@ And control the filename:
 Installing
 ++++++++++
 
+*Simple:*
+
+::
+
+        sudo easy_install ua-api-utils
+
+
+
+*For Developers:*
+
 In a virtualenv in safest (if you have virtualenv installed):
 
 ::
@@ -33,7 +43,7 @@ In a virtualenv in safest (if you have virtualenv installed):
         virtualenv ua-api-utils
         cd ua-api-utils
         . bin/activate
-        pip install ua-api-utils
+        python setup.py develop 
 
 Or in your ``$HOME`` directory if you have your user-site in your ``$PATH``:
 
@@ -47,9 +57,4 @@ And of course, there's always sudo to install it globally:
 
         sudo pip install ua-api-utils
 
-No pip?
-
-::
-
-        sudo easy_install ua-api-utils
 
