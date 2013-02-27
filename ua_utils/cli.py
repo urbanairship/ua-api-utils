@@ -13,7 +13,9 @@ logger.setLevel(logging.INFO)
 main_parser = argparse.ArgumentParser()
 main_parser.add_argument('-v --verbose', dest='verbose', action='store_true',
         help='enable verbose logging')
-main_parser.add_argument('command', help='command to run')
+main_parser.add_argument(
+    'command', help='command to run [%s]' % ', '.join(commands.funcs)
+)
 main_parser.add_argument('app_key', help='app key for command')
 main_parser.add_argument('secret', default=os.getenv('UA_SECRET'),
         help='API secret to use defaults to UA_SECRET')

@@ -12,9 +12,11 @@ REQ_ATTEMPTS = 10
 
 logger = logging.getLogger('ua_utils.cli')
 _commands = {}
+funcs = []
 
 
 def cmd(name=None):
+    funcs.append(name)
     def wrap(f):
         if name is None:
             cmd_name = f.__name__
