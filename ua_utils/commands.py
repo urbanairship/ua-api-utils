@@ -16,13 +16,14 @@ funcs = []
 
 
 def cmd(name=None):
-    funcs.append(name)
+
     def wrap(f):
         if name is None:
             cmd_name = f.__name__
         else:
             cmd_name = name
         _commands[cmd_name] = f
+        funcs.append(cmd_name)
         return f
     return wrap
 
